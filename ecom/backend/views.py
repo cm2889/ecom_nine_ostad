@@ -1,10 +1,11 @@
+from multiprocessing import context
 from pyexpat.errors import messages
 from urllib import request
 from django.shortcuts import redirect, render
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.contrib.auth import authenticate, login, logout
 
-from backend.models import Brand, Category, Product
+from backend.models import Brand, Category, Product,ProductCategory
 from backend.common_func import checkUserPermission
 # Create your views here.
 
@@ -112,15 +113,62 @@ def add_product(request):
     if request.method == 'POST':
         name = request.POST.get('name')
         brand_id = request.POST.get('brand')
-        category_id = request.POST.get('category')
+        category_ids = request.POST.getlist('categories')
         price = request.POST.get('price')
 
-        if name and brand_id and category_id and price:
-            brand = Brand.objects.get(id=brand_id)
-            category = Category.objects.get(id=category_id)
-            Product.objects.create(name=name, brand=brand, category=category, price=price)
-            return redirect('products')
+        # Debug: Log all POST data
+        print("POST data:", request.POST)
+        print("name:", name)
+        print("brand_id:", brand_id)
+        print("category_ids:", category_ids)
+        print("price:", price)
+
+        if name and price and category_ids:
+            try:
+                price = float(price)
+                product = Product.objects.create(name=name, price=price,brand_id=brand_id if brand_id else None)
+                
+                for category_id in category_ids:
+                    try:
+                         if not ProductCategory.objects.filter(product=product, category_id=category_id).exists():
+                            ProductCategory.objects.create(product=product, category_id=category_id)
+                         
+                    except ValueError:
+                        print(f"Invalid category ID: {category_id}")
+                        continue
+
+                return redirect('products')
+            except (ValueError, TypeError):
+                return render(request, 'product/add_product.html', {'error': 'Invalid price format.', 'brands': brands, 'categories': categories})
         else:
             return render(request, 'product/add_product.html', {'error': 'All fields are required.', 'brands': brands, 'categories': categories})
     
     return render(request, 'product/add_product.html', {'brands': brands, 'categories': categories})
+
+
+def home(request):
+     
+    categories = Category.objects.filter(is_active=True).order_by('-id')[:5]
+    featured_products = Product.objects.filter(is_active=True, is_featured=True).order_by('-id')[:10]
+
+    context = {
+         'categories': categories,
+         'featured_products': featured_products,}
+    return render(request, 'website/home.html', context)
+
+def product_web_list(request):
+    products = Product.objects.filter(is_active=True).order_by('-id')
+    context = {
+        'products': products,
+    }
+    return render(request, 'website/product/list.html', context)
+
+def products_details(request, product_slug):
+    product = Product.objects.filter(slug=product_slug, is_active=True).first()
+    if not product:
+        return render(request, '404.html')
+
+    context = {
+        'product': product,
+    }
+    return render(request, 'website/product/details.html', context)

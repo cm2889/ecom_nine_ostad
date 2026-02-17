@@ -40,6 +40,7 @@
                     
                                 <th class="text-left">Name</th>
                                 <th class="text-left">Description</th>
+                                <th class="text-left">Category</th>
                                 <th class="text-left">Created Date</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-center">Action</th>
@@ -53,6 +54,7 @@
                                     <a class="text-underline" href="">{{ data.name }}</a>
                                 </td>
                                 <td class="text-left">{{ data.description }}</td>
+                                
                                 <td class="text-left">{{ data.created_at|date:"d-M-Y" }}</td>
                                 <td class="text-center">
                                     {% if data.is_active %}

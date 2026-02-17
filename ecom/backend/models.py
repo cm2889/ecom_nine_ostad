@@ -71,6 +71,7 @@ class Category (models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    image = models.ImageField(upload_to='category_images/', blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -93,6 +94,9 @@ class Product (models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     total_reviews = models.IntegerField(default=0)
+    is_featured = models.BooleanField(default=False)
+    avl_quantity = models.IntegerField(default=0)
+    image=models.ImageField(upload_to='product_images/', blank=True, null=True)
 
     def __str__(self):
         return self.name

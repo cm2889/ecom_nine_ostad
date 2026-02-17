@@ -12,7 +12,11 @@ urlpatterns = [
     path('category-list/', views.category_list, name='category'),
     path('product-list/', views.products_list, name='products'),
     path('add-product/', views.add_product, name='add_product'),
-    
+    path('', views.home, name='home'),
+
+    #Porducts information
+    path('products/', views.product_web_list, name='product_web_list'),
+    path('products/<slug:product_slug>/', views.products_details, name='products_details'),
 
     
 ]

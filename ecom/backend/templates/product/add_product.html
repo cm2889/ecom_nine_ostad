@@ -79,6 +79,21 @@
                                 </div>  
                             </div> 
 
+                             <div class="form-group">
+                                <div class="input-field">
+                                    <label for="categories">Categories</label>
+                                    <div class="select2-box">
+                                        <select name="categories" id="categories" class="form-control select2-single" multiple required>
+                                            <option value="">Select Categories</option>
+                                            {% for category in categories %}
+                                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                              
+                            </div> 
+
                                
 
     
