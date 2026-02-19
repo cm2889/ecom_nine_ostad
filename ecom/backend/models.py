@@ -3,6 +3,9 @@ import datetime
 
 from django.contrib.auth.models import User
 
+import datetime
+from django.utils import timezone
+
 # Create your models here.
 
 #For permission 
@@ -175,21 +178,17 @@ class Membership (models.Model):
         db_table = "membership"
 
 
-class Customer (models.Model):
-    user=models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100, blank=True, null=True)
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
-    membership = models.ForeignKey(Membership, on_delete=models.SET_NULL, blank=True, null=True)
-   
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+class Customer(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone = models.CharField(max_length=15)
+    date_of_birth = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.name
+        return self.user.username
     
     class Meta:
         db_table = "customer"
-
 class Review (models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='reviews')
@@ -199,7 +198,7 @@ class Review (models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Review for {self.product.name} by {self.customer.name}"
+        return f"Review for {self.product.name} by {self.customer.user.username}"
     
     class Meta:
         db_table = "review"
@@ -209,43 +208,12 @@ class Cart (models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Cart of {self.customer.name}"
+        return f"Cart of {self.customer.user.username}"
     
     class Meta:
         db_table = "cart"
-class CartItem (models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField(default=1)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.quantity} of {self.product.name} in cart of {self.cart.customer.name}"
-    
-    class Meta:
-        db_table = "cart_item"
-class Wishlist (models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='wishlists')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"Wishlist of {self.customer.name}"
-    
-    class Meta:
-        db_table = "wishlist"
-class WishlistItem (models.Model):
-    wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.product.name} in wishlist of {self.wishlist.customer.name}"
-    
-    class Meta:
-        db_table = "wishlist_item"
 
 class discountCoupon(models.Model):
     code = models.CharField(max_length=50, unique=True)
@@ -260,7 +228,26 @@ class discountCoupon(models.Model):
     class Meta:
         db_table = "discount_coupons"
 
+class OrderCart(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE,related_name='order_cart')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    is_order= models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def total_amount(self):
+        return_value=float(self.quantity) * float(self.product.price)
+        return return_value
+    
+    class Meta:
+        db_table = 'order_cart'
+
+    def __str__(self):
+        return f"{self.customer} - {self.product.product_name} ({self.quantity})"
+    
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -272,7 +259,7 @@ class Order(models.Model):
 
     order_number = models.CharField(max_length=100, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    shipping_address = models.CharField(max_length=255, blank=True, null=True)
+
     billing_address = models.CharField(max_length=255, blank=True, null=True)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -286,7 +273,6 @@ class Order(models.Model):
     paid_amount = models.DecimalField(default=0, max_digits=20, decimal_places=2)
     due_amount = models.DecimalField(default=0, max_digits=20, decimal_places=2)
     grand_total = models.DecimalField(default=0, max_digits=20, decimal_places=2)
-    discount_coupon = models.ForeignKey(discountCoupon, on_delete=models.SET_NULL, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -365,46 +351,17 @@ class OrderPayment(models.Model):
     class Meta:
         db_table = 'order_payments'
 
-class OrderReturn(models.Model):
-    order = models.ForeignKey(Order, related_name='order_returns', on_delete=models.CASCADE)
-    reason = models.TextField(blank=True, null=True)
-    status_list = [('Pending', 'Pending'), ('Approved', 'Approved'), ('Rejected', 'Rejected')]
-    status = models.CharField(max_length=15, choices=status_list, blank=True, null=True)
-    is_active = models.BooleanField(default=True)
+#Email OTP Verification
+
+class EmailOTP(models.Model):
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=60)
 
     def __str__(self):
-        return str(self.order.order_number)+" ("+str(self.status)+")"
-
-    class Meta:
-        db_table = 'order_returns'
-
-class OrderReturnDetail(models.Model):
-    order_return = models.ForeignKey(OrderReturn, related_name='order_return_details', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    quantity = models.PositiveIntegerField()
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return str(self.order_return.order.order_number)+" ("+str(self.product)+" - "+str(self.quantity)+")"
-
-    class Meta:
-        db_table = 'order_return_details'
-class OrderRefund(models.Model):
-    order_return = models.ForeignKey(OrderReturn, related_name='order_refunds', on_delete=models.CASCADE)
-    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    refund_method = models.CharField(max_length=50, blank=True, null=True)
-    transaction_id = models.CharField(max_length=50, blank=True, null=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return str(self.order_return.order.order_number)+" ("+str(self.refund_amount)+" - "+str(self.refund_method)+")"
-
-    class Meta:
-        db_table = 'order_refunds'
+        return f"{self.email} - {self.code}"
  

@@ -19,4 +19,16 @@ urlpatterns = [
     path('products/<slug:product_slug>/', views.products_details, name='products_details'),
 
     
+     # Authentication
+    path('login/', views.login_view, name='user_login'),
+    path('register/', views.register, name='register'),
+    path('logout/', views.user_logout, name='user_logout'),
+    path('request-otp/', views.request_otp_view, name='request_otp'),
+    path('verify-otp/', views.verify_otp_view, name='verify_otp'),
+
+    
+    #ajax
+
+    path('add-or-update-cart/', views.add_or_update_cart, name='add_or_update_cart'),
+
 ]
