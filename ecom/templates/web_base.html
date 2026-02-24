@@ -35,7 +35,7 @@
                         <div class="nav-menu main-nav-menu" id="main-nav-menu">
                             <ul>
                                 <li><a href="#">About Fico</a></li>
-                                 <li><a href="{% url 'product_web_list' %}">Products</a></li> 
+                                <li><a href="{% url 'product_list' %}">Products</a></li>
                                 
                             </ul>
                         </div>
@@ -59,7 +59,7 @@
                                     <a href="#"><img src="{% static 'website/images/icons/user-icon.svg' %}" alt="user"></a>
                                     <ul>
                                         <li><a href="">My Account</a></li>
-                                        {% comment %} <li><a href="{% url 'user_logout' %}">Logout</a></li> {% endcomment %}
+                                        <li><a href="{% url 'user_logout' %}">Logout</a></li>
                                     </ul>
                                 {% else %}
                                     <a href=""><img src="{% static 'website/images/icons/user-icon.svg' %}" alt="user"></a>
@@ -137,10 +137,10 @@
                          <div class="pocket-bottom">
                             <div class="pocket-item-info">
                                 <div class="complete_order">
-                                    {% comment %} <a class="fico-btn" href="{% url 'cart' %}">COMPLETE YOUR ORDER </a> {% endcomment %}
+                                    <a class="fico-btn" href="{% url 'cart' %}">COMPLETE YOUR ORDER </a>
                                 </div>
                                 <div class="basket-link">
-                                    {% comment %} <a href="{% url 'cart' %}">View your basket </a> {% endcomment %}
+                                    <a href="{% url 'cart' %}">View your basket </a>
                                 </div>
                             </div>
                         </div> 

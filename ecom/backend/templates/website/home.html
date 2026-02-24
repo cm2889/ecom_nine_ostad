@@ -20,7 +20,7 @@
             <div class="swiper banner-swiper">
                 <div class="swiper-wrapper">
                     <div class="swiper-slide">
-                        <a href="#">
+                        <a href="{% url 'product_list' %}">
                             <img class="desktop" src="{% static 'website/images/banner/banner-web.png' %}" alt="Fico">
                             <img class="mobile" src="{% static 'website/images/banner/banner-mobile.png' %}" alt="Fico">
                         </a>
@@ -45,37 +45,13 @@
             <div class="category-list best-sellers-list">
                 {% for product in featured_products %}
                     <div class="category-item">
-                        <a href="{% url 'products_details' product.slug %}" rel="noopener noreferrer">
-                            <img src="/media/{{ product.image }}" alt="{{ product.name }}">
+                        <a href="{% url 'products_details' product.product_slug %}" rel="noopener noreferrer">
+                            <img src="/media/{{ product.product_image }}" alt="{{ product.product_name }}">
 
                         </a>
                         <div class="item-text">
-                            <p><a href="#">{{ product.name }}</a></p>
-                            <p style="text-align: center;">{{ product.price }} </p>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</section>
-
-
-<section class="category-featured best-sellers discover_our_products">
-    <div class="container-fluid">
-        <div class="category-box">
-            <div class="best-sellers-text">
-                <h3 class="sub-title">Discover Categories</h3>
-            </div>
-            <div class="category-list best-sellers-list">
-                {% for data in categories %}
-                    <div class="category-item">
-                        <a href="#" rel="noopener noreferrer">
-                            <img src="/media/{{ data.image }}" alt="{{ data.name }}">
-
-                        </a>
-                        <div class="item-text">
-                            <p><a href="#">{{ data.name }}</a></p>
+                            <p><a href="{% url 'products_details' product.product_slug %}">{{ product.product_name }}</a></p>
+                            <p style="text-align: center;">{{ product.current_price.currency.currency_icon }} {{ product.current_price.sale_price }}</p>
                         </div>
                     </div>
                 {% endfor %}

@@ -14,16 +14,21 @@
         <div class="product-info-box">
             <div class="product-info-left product-info-body">
                 <div class="product-info-top">
-                    {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name|default:'' }}">{% endif %}
+                    {% if product.product_image %}<img src="{{ product.product_image.url }}" alt="{{ product.product_name|default:'' }}">{% endif %}
                 </div>
-                 {% for related_image in product_related_images %}
+                {% comment %} {% for related_image in product_related_images %}
                     {% if related_image.image %}
                         <div class="product-info-top">
-                            <img src="{{ related_image.image.url }}" alt="{{ product.name|default:'' }}">
+                            <img src="{{ related_image.image.url }}" alt="{{ product.product_name|default:'' }}">
                         </div>
                     {% endif %}
-                {% endfor %} 
-                
+                {% endfor %} {% endcomment %}
+                {% comment %} <div class="product-info-top">
+                    <img src="{% static 'images/products/second-image.png' %}" alt="{{ product.product_name|default:'' }}">
+                </div>
+                <div class="product-info-top">
+                    <img src="{% static 'images/products/third-image.png' %}" alt="{{ product.product_name|default:'' }}">
+                </div> {% endcomment %}
             </div>
 
             <div class="product-info-right product-info-top">
@@ -32,11 +37,11 @@
                         {% csrf_token %}
 
                         <div class="row-group bottom-br-color">
-                            <h4 class="title">{{ product.name|default:'' }} </h4>
+                            <h4 class="title">{{ product.product_name|default:'' }} </h4>
                         </div>
                         <div class="row-group text-price bottom-br-color">
                             <div class="price-box">
-                                <p style="font-size: 18px;"> {{ product.price }}</p>
+                                <p style="font-size: 18px;">{{ product.current_price.currency.currency_icon }} {{ product.current_price.sale_price }}</p>
                             </div>
                         </div>
                         {% if product.description %}

@@ -1,15 +1,8 @@
 from django.db import models
-import datetime
-
 from django.contrib.auth.models import User
-
+from django.utils.text import slugify
 import datetime
 from django.utils import timezone
-
-# Create your models here.
-
-#For permission 
-
 # Create your models here.
 class MenuList(models.Model):
     module_name        = models.CharField(max_length=100, db_index=True)
@@ -53,130 +46,107 @@ class UserPermission(models.Model):
 
     def __str__(self):
         return str(self.menu)
-#permission ends here
-class Brand (models.Model):
-    name = models.CharField(max_length=100)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    
+class ProductMainCategory(models.Model):
+    main_cat_name = models.CharField(max_length=100, unique=True)
+    cat_slug      = models.SlugField(max_length=150, unique=True, blank=True)
+    cat_image     = models.ImageField(upload_to='ecommerce/category_images/', blank=True, null=True)
+    description   = models.TextField(blank=True, null=True)
+    cat_ordering  = models.IntegerField(default=0,blank=True, null=True)
+    created_by    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='category_created_by')
+    updated_by    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='category_updated_by', blank=True, null=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now_add=False, blank=True, null=True)
+    is_active     = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'product_category'
+        verbose_name_plural = 'Product Categories'
+        ordering = ['-is_active','cat_ordering']
 
     def __str__(self):
-        return self.name
+        return self.main_cat_name
     
+    def save(self, *args, **kwargs):
+        if not self.cat_slug and self.main_cat_name:
+            base_slug = slugify(self.main_cat_name)
+            slug = base_slug
+            num = 1
+            while ProductMainCategory.objects.filter(cat_slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{num}"
+                num += 1
+            self.cat_slug = slug
+        super().save(*args, **kwargs)
+    
+class ProductSubCategory(models.Model):
+    main_category = models.ForeignKey(ProductMainCategory, on_delete=models.CASCADE, related_name='sub_categories')
+    sub_cat_name = models.CharField(max_length=100, unique=True)
+    sub_cat_slug      = models.SlugField(max_length=150, unique=True, blank=True)
+    sub_cat_image     = models.ImageField(upload_to='ecommerce/sub_category_images/', blank=True, null=True)
+    sub_cat_ordering  = models.IntegerField(default=0)
+    created_by    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sub_category_created_by')
+    updated_by    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sub_category_updated_by', blank=True, null=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now_add=False, blank=True, null=True)
+    is_active     = models.BooleanField(default=True)
+
     class Meta:
-        db_table = "brand"
-
-
-class Category (models.Model):
-    name = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=100, unique=True)
-    description = models.TextField(blank=True, null=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    image = models.ImageField(upload_to='category_images/', blank=True, null=True)
+        db_table = 'product_sub_category'
+        verbose_name_plural = 'Product Sub Categories'
+        ordering = ['-is_active','sub_cat_ordering']
 
     def __str__(self):
-        return self.name
+        return self.sub_cat_name
     
-    class Meta:
-        db_table = "category"
-
-class Product (models.Model):
-    name = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=200, unique=True)
-    description = models.TextField()
-    dimensions = models.CharField(max_length=100, blank=True, null=True)
-    weight = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    def save(self, *args, **kwargs):
+        if not self.sub_cat_slug and self.sub_cat_name:
+            base_slug = slugify(self.sub_cat_name)
+            slug = base_slug
+            num = 1
+            while ProductSubCategory.objects.filter(sub_cat_slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{num}"
+                num += 1
+            self.sub_cat_slug = slug
+        super().save(*args, **kwargs)
+    
+class Product(models.Model):
+    product_name = models.CharField(max_length=100, unique=True)
+    product_slug = models.SlugField(max_length=150, unique=True, blank=True)
+    product_image = models.ImageField(upload_to='ecommerce/product_images/', blank=True, null=True)
+    main_category = models.ForeignKey(ProductMainCategory, on_delete=models.CASCADE, related_name='products')
+    sub_category = models.ForeignKey(ProductSubCategory, on_delete=models.CASCADE, related_name='products', blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
-    rating = models.FloatField(default=0)
-    delivery_day_min = models.IntegerField(default=0)
-    delivery_day_max = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    total_reviews = models.IntegerField(default=0)
+    stock = models.PositiveIntegerField(default=0)
     is_featured = models.BooleanField(default=False)
-    avl_quantity = models.IntegerField(default=0)
-    image=models.ImageField(upload_to='product_images/', blank=True, null=True)
+    total_views = models.PositiveIntegerField(default=0)
+    discount_percentage = models.PositiveIntegerField(default=0, blank=True, null=True)
+    discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
-    def __str__(self):
-        return self.name
-    class Meta:
-        db_table = "products"
-
-class ProductImage (models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image_url = models.ImageField(upload_to='product_images/')
-    position = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Image for {self.product.name}"
-    class Meta:
-        db_table = "product_images"
-        ordering = ['position']
-
-class ProductCategory (models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"{self.product.name} in {self.category.name}"
-    
-    class Meta:
-        db_table = "product_category"
-        
-
-class Attribute (models.Model):
-    name = models.CharField(max_length=100)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
-    
-    class Meta:
-        db_table = "attribute"
-class AttributeValue (models.Model):
-    attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE)
-    value = models.CharField(max_length=100)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.attribute.name}: {self.value}"
-    
-    class Meta:
-        db_table = "attribute_value"
-class ProductAttributeValue (models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    attribute_value = models.ForeignKey(AttributeValue, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"{self.product.name} - {self.attribute_value}"
-    
-    class Meta:
-        db_table = "product_attribute_value"
-
-class Membership (models.Model):
-    name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='product_created_by')
+    updated_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='product_updated_by', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now_add=False, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'products'
+        verbose_name_plural = 'Products'
+        ordering = ['-is_active']
 
     def __str__(self):
-        return self.name
-    
-    class Meta:
-        db_table = "membership"
+        return self.product_name
 
+    def save(self, *args, **kwargs):
+        if not self.product_slug and self.product_name:
+            base_slug = slugify(self.product_name)
+            slug = base_slug
+            num = 1
+            while Product.objects.filter(product_slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{num}"
+                num += 1
+            self.product_slug = slug
+        super().save(*args, **kwargs)
 
 class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -187,46 +157,6 @@ class Customer(models.Model):
     def __str__(self):
         return self.user.username
     
-    class Meta:
-        db_table = "customer"
-class Review (models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='reviews')
-    rating = models.IntegerField()
-    comment = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Review for {self.product.name} by {self.customer.user.username}"
-    
-    class Meta:
-        db_table = "review"
-class Cart (models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='carts')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Cart of {self.customer.user.username}"
-    
-    class Meta:
-        db_table = "cart"
-
-
-
-class discountCoupon(models.Model):
-    code = models.CharField(max_length=50, unique=True)
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.code
-
-    class Meta:
-        db_table = "discount_coupons"
 
 class OrderCart(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE,related_name='order_cart')

@@ -11,7 +11,7 @@
 
 <!-- CART PRODUCT Table-->
 <section class="cart-section">
-    <form method="post" action=" {% url "checkout" %} " id="cart_form">
+    <form method="post" action=" {% url "checkout" %}" id="cart_form">
         {% csrf_token %}
         <div class="container-fluid">
             <div class="cart-wrap-box">

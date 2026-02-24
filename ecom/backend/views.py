@@ -1,25 +1,31 @@
-from multiprocessing import context
-from pyexpat.errors import messages
-from urllib import request
-from django.shortcuts import redirect, render
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.contrib.auth import authenticate, login, logout
-
-from backend.models import Brand, Category, Customer, Product,ProductCategory,EmailOTP,OrderCart
-from backend.common_func import checkUserPermission
-
-from django.contrib.auth.models import User
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
 from backend.utls import generate_otp
+from .models import MenuList, Order, OrderDetail, ProductMainCategory, ProductSubCategory
+from django.contrib.auth.models import User
 
-from django.http import JsonResponse
+
+
+from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.contrib import messages
-# Create your views here.
+from django.http import JsonResponse
+from django.db import transaction
 
 
-#For Pagination data
+from backend.models import  Customer, Product,EmailOTP,OrderCart
+from backend.common_func import checkUserPermission
+
+def ecom_dashboard(request):
+   
+    return render(request, 'home/home.html')
 
 
+@login_required
 def paginate_data(request, page_num, data_list):
     items_per_page, max_pages = 10, 10
     paginator = Paginator(data_list, items_per_page)
@@ -44,147 +50,204 @@ def paginate_data(request, page_num, data_list):
 
     return data_list, paginator_list, last_page_number
 
-def ecom_dashboard(request):
-      return render(request, 'home/home.html')
 
 
-def brand(request):
-            
-            if not checkUserPermission(request, "can_view", "/backend/brand-list/"):
-                return render(request,"403.html")
-            
-            brands = Brand.objects.filter(is_active=True).order_by('-id')
-            page_number = request.GET.get('page', 1)
-            brands, paginator_list, last_page_number = paginate_data(request, page_number, brands)
 
-            context = {
-                'paginator_list': paginator_list,
-                'last_page_number': last_page_number,
-                'brands': brands,
-            }
-            return render(request, 'brand/brand.html', context)
-def add_brand(request):
-    if not checkUserPermission(request, "can_add", "/backend/brand-list/"):
-        return render(request,"403.html")
+@login_required
+def setting_dashboard(request):
+    get_setting_menu = MenuList.objects.filter(module_name='Setting', is_active=True)
+   
+    context = {
+        "get_setting_menu": get_setting_menu,
+        
+    }
+    return render(request, 'home/setting_dashboard.html', context)
+
+
+
+@login_required 
+def product_main_category_list_view(request):
     
+    
+    if not checkUserPermission(request, "can_view", "backend/product-main-category-list/"):
+        return render(request,"403.html")
+
+    product_main_categories = ProductMainCategory.objects.filter(is_active=True).order_by('-id')
+    page_number = request.GET.get('page', 1)
+    product_main_categories, paginator_list, last_page_number = paginate_data(request, page_number, product_main_categories)
+
+    context = {
+        'paginator_list': paginator_list,
+        'last_page_number': last_page_number,
+        'product_main_categories': product_main_categories,
+    }
+
+    return render(request, "product/main_category_list.html", context)  
+
+@login_required
+def add_product_main_category(request):
+    if not checkUserPermission(request, "can_add", "backend/product-main-category-list/"):
+        return render(request,"403.html")
+
     if request.method == 'POST':
-        name = request.POST.get('name')
-        if name:
-            Brand.objects.create(name=name)
-            return redirect('brand')
-        else:
-            return render(request, 'brand/add_brand.html', {'error': 'Brand name cannot be empty.'})
-    return render(request, 'brand/add_brand.html')
+        main_cat_name = request.POST.get('main_cat_name')
+        cat_slug = request.POST.get('cat_slug')
+
+        description = request.POST.get('description')
+        
+        product_main_category = ProductMainCategory(
+            main_cat_name=main_cat_name,
+            cat_slug=cat_slug,
+            description=description,
+            created_by=request.user
+        )
+        product_main_category.save()
+        messages.success(request, 'Product Main Category added successfully.')
+        return redirect('product_main_category_list')
+
+    return render(request, 'product/add_product_main_category.html')
+
+@login_required
+def product_main_category_details(request, pk):
+    if not checkUserPermission(request, "can_view", "backend/product-main-category-list/"):
+        return render(request,"403.html")
+
+    data = get_object_or_404(ProductMainCategory, pk=pk)
+    
+    context = {
+        'data': data,
+    }
+    return render(request, 'product/product_main_category_details.html', context)
 
 
-def category_list(request):
-            
-            if not checkUserPermission(request, "can_view", "/backend/category-list/"):
-                return render(request,"403.html")
-            
-            categories = Category.objects.filter(is_active=True).order_by('-id')
-            page_number = request.GET.get('page', 1)
-            categories, paginator_list, last_page_number = paginate_data(request, page_number, categories)
+@login_required
+def product_list(request):
+    if not checkUserPermission(request, "can_view", "backend/product-list/"):
+        return render(request,"403.html")
 
-            context = {
-                'paginator_list': paginator_list,
-                'last_page_number': last_page_number,
-                'categories': categories,
-            }
-            return render(request, 'category/category.html', context)
-
-
-def products_list(request):
-     
-    if not checkUserPermission(request, "can_view", "/backend/product-list/"):
-            return render(request,"403.html")
-     
     products = Product.objects.filter(is_active=True).order_by('-id')
     page_number = request.GET.get('page', 1)
     products, paginator_list, last_page_number = paginate_data(request, page_number, products)
 
     context = {
-                'paginator_list': paginator_list,
-                'last_page_number': last_page_number,
-                'products': products,
-            }
-    return render(request, 'product/product.html', context)
-
-def add_product(request):
-    if not checkUserPermission(request, "can_add", "/backend/product-list/"):
-        return render(request,"403.html")
-    
-    brands = Brand.objects.filter(is_active=True)
-    categories = Category.objects.filter(is_active=True)
-
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        brand_id = request.POST.get('brand')
-        category_ids = request.POST.getlist('categories')
-        price = request.POST.get('price')
-
-        # Debug: Log all POST data
-        print("POST data:", request.POST)
-        print("name:", name)
-        print("brand_id:", brand_id)
-        print("category_ids:", category_ids)
-        print("price:", price)
-
-        if name and price and category_ids:
-            try:
-                price = float(price)
-                product = Product.objects.create(name=name, price=price,brand_id=brand_id if brand_id else None)
-                
-                for category_id in category_ids:
-                    try:
-                         if not ProductCategory.objects.filter(product=product, category_id=category_id).exists():
-                            ProductCategory.objects.create(product=product, category_id=category_id)
-                         
-                    except ValueError:
-                        print(f"Invalid category ID: {category_id}")
-                        continue
-
-                return redirect('products')
-            except (ValueError, TypeError):
-                return render(request, 'product/add_product.html', {'error': 'Invalid price format.', 'brands': brands, 'categories': categories})
-        else:
-            return render(request, 'product/add_product.html', {'error': 'All fields are required.', 'brands': brands, 'categories': categories})
-    
-    return render(request, 'product/add_product.html', {'brands': brands, 'categories': categories})
-
-
-def home(request):
-     
-    categories = Category.objects.filter(is_active=True).order_by('-id')[:5]
-    featured_products = Product.objects.filter(is_active=True, is_featured=True).order_by('-id')[:10]
-
-    context = {
-         'categories': categories,
-         'featured_products': featured_products,}
-    return render(request, 'website/home.html', context)
-
-def product_web_list(request):
-    products = Product.objects.filter(is_active=True).order_by('-id')
-    context = {
+        'paginator_list': paginator_list,
+        'last_page_number': last_page_number,
         'products': products,
     }
-    return render(request, 'website/product/list.html', context)
 
-def products_details(request, product_slug):
-    product = Product.objects.filter(slug=product_slug, is_active=True).first()
-    if not product:
-        return render(request, '404.html')
+    return render(request, "product/product_list.html", context)
+
+@login_required
+def product_detail(request, pk):
+    if not checkUserPermission(request, "can_view", "backend/product-list/"):
+        return render(request,"403.html")
+
+    product = get_object_or_404(Product, pk=pk)
     
-    if request.user.is_authenticated:
-        
-        
-        product.save()
-
     context = {
         'product': product,
     }
-    return render(request, 'website/product/details.html', context)
+    return render(request, 'product/product_detail.html', context)
 
+
+@login_required
+def product_edit(request, pk):
+    if not checkUserPermission(request, "can_update", "backend/product-list/"):
+        return render(request,"403.html")
+
+    product = get_object_or_404(Product, pk=pk)
+
+    if request.method == 'POST':
+        product.product_name = request.POST.get('product_name')
+        product.price = request.POST.get('price')
+        product.stock = request.POST.get('stock')
+        product.description = request.POST.get('description')
+        product.discount_percentage = request.POST.get('discount_percentage')
+        product.main_category = get_object_or_404(ProductMainCategory, pk=request.POST.get('main_category'))
+        product.sub_category = get_object_or_404(ProductSubCategory, pk=request.POST.get('sub_category'))
+        product.updated_by = request.user
+        product.save()
+        
+        messages.success(request, 'Product updated successfully.')
+        return redirect('product_list')
+    main_categories = ProductMainCategory.objects.filter(is_active=True)
+    sub_categories = ProductSubCategory.objects.filter(is_active=True)
+    context = {
+        'product': product,
+        'main_categories': main_categories,
+        'sub_categories': sub_categories,
+    }
+    return render(request, 'product/product_edit.html', context)
+
+@login_required
+def add_new_product(request):
+    if not checkUserPermission(request, "can_add", "backend/product-list/"):
+        return render(request,"403.html")
+
+    if request.method == 'POST':
+        product_name = request.POST.get('product_name')
+        price = request.POST.get('price')
+        stock = request.POST.get('stock')
+        discount_price = request.POST.get('discount_price')
+        discount_percentage = request.POST.get('discount_percentage')
+        description = request.POST.get('description')
+        main_category_id = request.POST.get('main_category')
+        sub_category_id = request.POST.get('sub_category')
+        image = request.FILES.get('product_image')
+
+        if not main_category_id or not sub_category_id or not product_name or not price or not stock:
+            messages.error(request, 'All fields are required.')
+            return redirect('add_new_product')
+        main_category=ProductMainCategory.objects.filter(id=main_category_id, is_active=True).first()
+
+        if not main_category:
+            messages.error(request, 'Invalid main category selected.')
+            return redirect('add_new_product')
+        
+        sub_category=ProductSubCategory.objects.filter(id=sub_category_id, is_active=True).first()
+
+        if not sub_category:
+            messages.error(request, 'Invalid Sub category selected.')
+            return redirect('add_new_product')
+
+        product = Product(
+            product_name=product_name,
+            product_image=image,
+            price=price,
+            stock=stock,
+            discount_price=discount_price,
+            discount_percentage=discount_percentage,
+            description=description,
+            main_category=main_category,
+            sub_category=sub_category,
+            created_by=request.user
+        )
+        product.save()
+        
+        messages.success(request, 'Product added successfully.')
+        return redirect('product_list')
+
+    main_categories= ProductMainCategory.objects.filter(is_active=True)
+    sub_categories = ProductSubCategory.objects.filter(is_active=True)
+    context = {
+        'main_categories': main_categories,
+        'sub_categories': sub_categories,
+    }
+    return render(request, 'product/add_new_product.html',context)
+
+def home(request):
+
+    main_categories= ProductMainCategory.objects.filter(is_active=True)
+
+    featured_products = Product.objects.filter(is_featured=True, is_active=True).order_by('-id')[:10]
+
+    context = {
+        'main_categories': main_categories,
+        'featured_products': featured_products,
+        
+    }
+
+    return render(request, 'website/home.html',context)
 
 def login_view(request):
     if request.method == 'POST':
@@ -204,8 +267,11 @@ def login_view(request):
         else:
             next_url = "home"
         return redirect(next_url)
+            
+        
+
     return render(request, 'website/user/login.html')
-    
+
 def register(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -226,9 +292,137 @@ def register(request):
 
     return render(request, 'website/user/register.html')
 
+
+@login_required
 def user_logout(request):
     logout(request)
     return redirect('home')
+
+
+def cart_amount_summary(request):
+
+    sub_total_amount = 0
+    total_vat = 0
+    total_discount = 0
+    grand_total = 0
+
+    if request.user.is_authenticated:
+        customer= Customer.objects.filter(user=request.user).first()
+        cart_items = OrderCart.objects.filter(customer=customer, is_active=True, is_order=False)
+        for item in cart_items:
+            sub_total_amount += item.total_amount
+            #total_vat += (item.product.price * 0.15)
+    grand_total = (sub_total_amount + total_vat) - total_discount 
+
+    return {'sub_total_amount': sub_total_amount, 'total_vat': total_vat, 'total_discount': total_discount, 'grand_total': grand_total}
+           
+            
+#Products Details
+
+def products_details(request, product_slug):
+
+    product = Product.objects.filter(product_slug=product_slug, is_active=True).first()
+
+    if not product:
+        messages.error(request, "Product not found.")
+        return redirect('home')
+    
+    if request.user.is_authenticated:
+        customer = Customer.objects.filter(user=request.user).first()
+        product_cart= OrderCart.objects.filter(customer=customer, product=product, is_active=True, is_order=False).first()
+        
+        if product_cart:
+            product.product_cart = product_cart
+    
+
+    context = {
+        'product': product,
+    }
+    return render(request, 'website/product/products_details.html', context)
+
+def add_or_update_cart(request):
+
+    
+    is_authenticated = request.user.is_authenticated
+    
+    
+    if is_authenticated:
+        if request.method == 'POST':
+            
+            customer=Customer.objects.filter(user=request.user).first()
+            
+            product_id = request.POST.get('product_id')
+            quantity = int(request.POST.get('quantity', 0))
+
+            try:
+                isRemoved = False
+
+                cart_item, created = OrderCart.objects.update_or_create(
+                    customer=customer, product_id=product_id, is_order=False, is_active=True,
+                    defaults={'quantity': quantity}
+                )
+                
+                if not created:
+                    if quantity <= 0:
+                        cart_item.is_active = False
+                        isRemoved = True
+
+                    cart_item.quantity = quantity
+                    cart_item.save()
+
+                amount_summary = cart_amount_summary(request)
+
+                cart_item_count = OrderCart.objects.filter(customer=customer, is_order=False, is_active=True).count()
+                print(f"Cart Item Count: {cart_item_count}")
+
+               
+
+                response = {
+                    'status': 'success',
+                    'message': 'Cart updated successfully',
+                    'is_authenticated': is_authenticated,
+                    'isRemoved': isRemoved,
+                    'item_price': cart_item.total_amount,
+                    'cart_item_count': cart_item_count,
+                    'amount_summary': amount_summary,
+                }
+                
+                return JsonResponse(response)
+            
+
+            except OrderCart.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Cart item not found', 'is_authenticated': is_authenticated,})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request', 'is_authenticated': is_authenticated,}, status=400)
+
+def product_web_list(request):
+    products = Product.objects.filter(is_active=True).order_by('-id')
+    context = {
+        'products': products,
+    }
+    return render(request, 'website/product/list.html', context)
+
+
+@login_required
+def cart(request):
+
+    customer= Customer.objects.filter(user=request.user).first()
+    context= {
+        'customer': customer,
+
+    }
+
+    return render(request, 'website/cart/cart.html',context)  
+
+#OTP Verification
+
+def request_otp_view(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        generate_otp(email)
+        return redirect(f'/backend/verify-otp/?email={email}')
+    
+
 
 def verify_otp_view(request):
     email = request.GET.get('email')
@@ -257,13 +451,10 @@ def verify_otp_view(request):
             messages.error(request, "Invalid or expired OTP.")
 
     return render(request, 'website/user/verify_otp.html', {'email': email})      
+           
+       
+
   
-def request_otp_view(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        generate_otp(email)
-        return redirect(f'/backend/verify-otp/?email={email}')
-    
 
 def add_or_update_cart(request):
 
@@ -338,5 +529,73 @@ def cart_amount_summary(request):
 
     return {'sub_total_amount': sub_total_amount, 'total_vat': total_vat, 'total_discount': total_discount, 'grand_total': grand_total}
            
+@login_required
+def checkout(request):
 
+    amount_summary= cart_amount_summary(request)
+    grand_total = amount_summary.get('grand_total', 0)
+
+    if grand_total < 1:
+        messages.error(request, "Your cart is empty. Please add items to cart before checkout.")
+        return redirect('cart')
+    
+    if request.method == 'POST':
+        with transaction.atomic():
+            billing_address = request.POST.get('billing_address')
+
+            print(f"Billing Address: {billing_address}")
+            print("testtststs")
+            customer= Customer.objects.filter(user=request.user).first()
+
+            if not billing_address:
+                messages.error(request, "Billing address is required.")
+
+                print("Checkout failed: Missing billing address.")
+                return redirect('checkout')
+            
+            cart_items = OrderCart.objects.filter(customer=customer, is_active=True, is_order=False)
+
+            if len(cart_items) == 0:
+                messages.error(request, "Your cart is empty. Please add items to cart before checkout.")
+                return redirect('cart')
+            else:
+                order_obj= Order.objects.create(
+                    customer=customer,
+                    billing_address=billing_address,
+                    
+                )
+                
+                order_amount, shipping_charge, discount, coupon_discount, vat_amount, tax_amount = 0, 0, 0, 0, 0, 0
+
+                for cart_item in cart_items:
+                    order_amount += cart_item.total_amount
+
+                    OrderDetail.objects.create(
+                        order=order_obj,
+                        product=cart_item.product,
+                        quantity=cart_item.quantity,
+                        unit_price=cart_item.product.price,
+                        total_price=cart_item.total_amount
+                    )
+
+                    grand_total = (order_amount + shipping_charge + vat_amount + tax_amount) - (discount + coupon_discount)
+
+                order_obj.order_amount = order_amount
+                order_obj.shipping_charge = shipping_charge
+                order_obj.discount = discount
+                order_obj.coupon_discount = coupon_discount
+                order_obj.vat_amount = vat_amount
+                order_obj.tax_amount = tax_amount
+                order_obj.due_amount = grand_total
+                order_obj.grand_total = grand_total
+                order_obj.save()
+
+                messages.success(request, "Your order has been placed successfully.")
+
+                print(f"Order Amount: {order_amount}, Shipping Charge: {shipping_charge}, Discount: {discount}, Coupon Discount: {coupon_discount}, VAT Amount: {vat_amount}, Tax Amount: {tax_amount}, Grand Total: {grand_total}")
+
+                return redirect('home')
+                    
+            
+            
     

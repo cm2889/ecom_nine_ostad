@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %} Products Create {% endblock %}
+{% block title %} Products {% endblock %}
 
 {% block content %}
     <section class="customer-list-section">
@@ -9,12 +9,12 @@
 
                 <div class="title-box">
                     <div class="page-title">
-                        <h3>Add New Product</h3>
+                        <h3>Add New </h3>
                     </div>
                     <div class="breadcrumbs">
                         <ul class="breadcrumbs-list">
                             <li><a href="/"><span><img src="/static/images/icons/Home.svg" alt="more"></span>Home</a></li>
-                            <li><a href="{% url 'products' %}">Products List</a></li>
+                            <li><a href="{% url 'product_list' %}">Products List</a></li>
                             <li><a href="#">Add New Product</a></li>
                         </ul>
                     </div>
@@ -37,38 +37,42 @@
                             <div class="form-group">
                                 <div class="input-field">
                                     <label for="product_name"> Name*</label>
-                                    <input type="text" name="name" id="product_name" required>
+                                    <input type="text" name="product_name" id="product_name" required>
                                 </div>
                                  
-                               <div class="input-field">
-                                    <label for="price">Price</label>
-                                    <input type="number" name="price" id="price" >
-                                </div> 
+                                <div class="input-field">
+                                    <label for="product_image">Product Image</label>
+                                    <input type="file" name="product_image" id="product_image" >
+                                </div>
                              
                             </div>
 
                              <div class="form-group">
-                                
                                 <div class="input-field">
-                                    <label for="delivery-day-min">Dielivery Day Min</label>
-                                    <input type="number" name="delivery_day_min" id="delivery_day_min" >
-                                </div>  
-
-                                <div class="input-field">
-                                    <label for="delivery-day-min">Dielivery Day Max</label>
-                                    <input type="number" name="delivery_day_max" id="delivery_day_max" >
-                                </div> 
-
-                            </div>
-
-                               <div class="form-group">
-                                <div class="input-field">
-                                    <label for="brand">Brand</label>
+                                    <label for="main_category">Main Category Name</label>
                                     <div class="select2-box">
-                                        <select name="brand" id="brand" class="form-control select2-single" required>
-                                            <option value="">Select Brand</option>
-                                            {% for brand in brands %}
-                                                <option value="{{ brand.id }}">{{ brand.name }}</option>
+                                        <select name="main_category" id="main_category" class="form-control select2-single" required>
+                                            <option value="">Select Catgory</option>
+                                            {% for main_category in main_categories %}
+                                                <option value="{{ main_category.id }}">{{ main_category.main_cat_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="input-field">
+                                    <label for="price">Price</label>
+                                    <input type="number" name="price" id="price" >
+                                </div>  
+                            </div>  
+
+                            <div class="form-group">
+                                <div class="input-field">
+                                    <label for="sub_category">Sub Category Name</label>
+                                    <div class="select2-box">
+                                        <select name="sub_category" id="sub_category" class="form-control select2-single" required>
+                                            <option value="">Select Sub Catgory</option>
+                                            {% for sub_category in sub_categories %}
+                                                <option value="{{ sub_category.id }}">{{ sub_category.sub_cat_name }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -80,23 +84,19 @@
                             </div> 
 
                              <div class="form-group">
+                                
                                 <div class="input-field">
-                                    <label for="categories">Categories</label>
-                                    <div class="select2-box">
-                                        <select name="categories" id="categories" class="form-control select2-single" multiple required>
-                                            <option value="">Select Categories</option>
-                                            {% for category in categories %}
-                                                <option value="{{ category.id }}">{{ category.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                              
-                            </div> 
+                                    <label for="discount_percentage">Discount Percentage</label>
+                                    <input type="number" name="discount_percentage" id="discount_percentage" >
+                                </div>  
 
-                               
+                                <div class="input-field">
+                                    <label for="discount_price">Discount Percentage</label>
+                                    <input type="number" name="discount_price" id="discount_price" >
+                                </div> 
 
-    
+                            </div>
+                            
                            
                             <div class="form-group">
                                 <div class="input-field-full">

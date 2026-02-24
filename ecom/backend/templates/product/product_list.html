@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %} Products | Ecommerce {% endblock %}
+{% block title %} Home | Ecommerce {% endblock %}
 
 {% block content %}
     <section class="customer-list-section">
@@ -9,17 +9,17 @@
 
                 <div class="title-box">
                     <div class="page-title">
-                        <h3>Product List</h3>
+                        <h3>Products List</h3>
                     </div>
                     <div class="breadcrumbs">
                         <ul class="breadcrumbs-list">
                             <li><a href="#"><span><img src="/static/images/icons/Home.svg" alt="more"></span>Home</a></li>
-                            <li><a href="#">Product List</a></li>
+                            <li><a href="#">Products List</a></li>
                         </ul>
                     </div>
                     <div class="top-button">
                         <div class="button-box">
-                            <a class="button primary-button" href="#"><span><img src="/static/images/icons/add.svg" alt="more"></span> Add New Product</a>
+                            <a class="button primary-button" href="{% url 'add_new_product' %}"><span><img src="/static/images/icons/add.svg" alt="more"></span> Add New Product</a>
                         </div>
                     </div>
                 </div>
@@ -37,10 +37,13 @@
                         <table>
                             <tr>
                                 <th class="text-center" >#</th>
-                    
+                                <th class="text-center">Image</th>
                                 <th class="text-left">Name</th>
-                                <th class="text-left">Description</th>
-                                <th class="text-left">Category</th>
+                                <th class="text-left">Main Category</th>
+                                <th class="text-left">Sub Category</th>
+                                
+                                <th class="text-left">Price</th>
+                                <th class="text-left">Total View</th>
                                 <th class="text-left">Created Date</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-center">Action</th>
@@ -49,12 +52,23 @@
                         {% for data in products %}
                             <tr>
                                 <td class="text-center">{{ forloop.counter }}</td>
-                                
-                                <td class="text-left">
-                                    <a class="text-underline" href="">{{ data.name }}</a>
+                                <td class="text-center">
+                                    <span><a href="">
+                                        {% if data.product_image and data.product_image.url %}
+                                            <img src="{{ data.product_image.url }}" alt="user image" style="width: 50px; height: 50px;">
+                                        {% else %}
+                                            <img src="/static/images/icons/user-default.png" alt="user image">
+                                        {% endif %}</a>
+                                    </span>
                                 </td>
-                                <td class="text-left">{{ data.description }}</td>
+                                <td class="text-left">
+                                    <a class="text-underline" href="">{{ data.product_name }}</a>
+                                </td>
                                 
+                                <td class="text-left">{{ data.main_category.main_cat_name }}</td>
+                                <td class="text-left">{{ data.sub_category.sub_cat_name }}</td>
+                                <td class="text-left">{{ data.price }}</td>
+                                <td class="text-left">{{ data.total_views }}</td>
                                 <td class="text-left">{{ data.created_at|date:"d-M-Y" }}</td>
                                 <td class="text-center">
                                     {% if data.is_active %}
@@ -65,11 +79,15 @@
                                 </td>
                                    <td class="text-center">
                                     <span class="more">
-                                        <a href="#">
+                                        <a href="{% url 'product_detail' data.id %}">
                                             <i class="fas fa-eye font-weight500"></i>
                                         </a>
                                     </span>
-                                    
+                                    <span class="more">
+                                        <a href="{% url 'edit_product' data.id %}">
+                                            <i class="fas fa-edit font-weight500"></i>
+                                        </a>
+                                    </span>
                                 </td> 
                             </tr>
                         {% empty %}
