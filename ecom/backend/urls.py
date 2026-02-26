@@ -1,4 +1,6 @@
 from django.urls import path
+
+from backend import views_payment
 from . import views
 
 
@@ -31,6 +33,13 @@ urlpatterns = [
 
     path('cart/', views.cart, name='cart'),
     path('checkout/', views.checkout, name='checkout'),
+
+    #Payment
+    path('payment/success/<str:str_data>/', views_payment.payment_complete, name='payment_complete'),
+    path('payment/cancel/<str:str_data>/', views_payment.payment_cancel, name='payment_cancel'),
+    path('payment/failed/<str:str_data>/', views_payment.payment_failed, name='payment_failed'),
+    path('payment/check/<str:str_data>/', views_payment.payment_check, name="payment_check"),
+    
 
    
 

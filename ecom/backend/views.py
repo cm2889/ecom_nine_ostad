@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from backend.utls import generate_otp
 from .models import MenuList, Order, OrderDetail, ProductMainCategory, ProductSubCategory
 from django.contrib.auth.models import User
+from .views_payment import create_payment_request
 
 
 
@@ -592,9 +593,26 @@ def checkout(request):
 
                 messages.success(request, "Your order has been placed successfully.")
 
-                print(f"Order Amount: {order_amount}, Shipping Charge: {shipping_charge}, Discount: {discount}, Coupon Discount: {coupon_discount}, VAT Amount: {vat_amount}, Tax Amount: {tax_amount}, Grand Total: {grand_total}")
+                #print(f"Order Amount: {order_amount}, Shipping Charge: {shipping_charge}, Discount: {discount}, Coupon Discount: {coupon_discount}, VAT Amount: {vat_amount}, Tax Amount: {tax_amount}, Grand Total: {grand_total}")
+                response_data, response_status = create_payment_request(request, order_obj.id)
+                print(response_data)
+                print(response_status)
+
+                if response_data['status'] == "SUCCESS":
+                        for cart_item in cart_items:
+                            cart_item.is_order = True
+                            cart_item.save()
+
+                        return redirect(response_data['GatewayPageURL'])
+                elif "error_message" in response_data:
+                        messages.error(request, response_data['error_message'])
+                else:
+                        messages.error(request, 'Failed to payment.')
+
 
                 return redirect('home')
+
+
                     
             
             
